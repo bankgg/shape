@@ -154,7 +154,7 @@
         var totalTime = 6 * 60; // 6 minutes in seconds
 
         // Constants for shape appearance
-        const TEXT_FONT_SIZE = 12;
+        const TEXT_FONT_SIZE = 11;
         var minSize = 40,
           maxSize = 70;
         var maxAttempts = 1000000;
@@ -336,13 +336,17 @@
               shapeElement.setAttribute("fill", "none");
               shapeElement.setAttribute(
                 "transform",
-                "translate(" +
+                "rotate(90, " +
                   cx +
-                  " " +
+                  ", " +
                   cy +
-                  ") rotate(90) scale(1.2,1) translate(-" +
+                  ") translate(" +
                   cx +
-                  " -" +
+                  ", " +
+                  cy +
+                  ") scale(1.2,1) translate(-" +
+                  cx +
+                  ", -" +
                   cy +
                   ")"
               );
@@ -426,13 +430,17 @@
               shapeElement.setAttribute("fill", "none");
               shapeElement.setAttribute(
                 "transform",
-                "translate(" +
+                "rotate(90, " +
                   cx +
-                  " " +
+                  ", " +
                   cy +
-                  ") rotate(90) scale(1.2,1) translate(-" +
+                  ") translate(" +
                   cx +
-                  " -" +
+                  ", " +
+                  cy +
+                  ") scale(1.2,1) translate(-" +
+                  cx +
+                  ", -" +
                   cy +
                   ")"
               );
@@ -443,11 +451,11 @@
           textElem.setAttribute("x", size / 2);
           var textY =
             shape === "triangle"
-              ? size / 2 + (TEXT_FONT_SIZE - 2) / 2 + 6
-              : size / 2 + (TEXT_FONT_SIZE - 2) / 2 - 2;
+              ? size / 2 + (TEXT_FONT_SIZE - 1) / 2 + 6
+              : size / 2 + (TEXT_FONT_SIZE - 1) / 2 - 2;
           textElem.setAttribute("y", textY);
           textElem.setAttribute("text-anchor", "middle");
-          textElem.setAttribute("font-size", TEXT_FONT_SIZE - 2);
+          textElem.setAttribute("font-size", TEXT_FONT_SIZE - 1);
           textElem.setAttribute("fill", "black");
           textElem.textContent = numberText;
           svg.appendChild(textElem);
