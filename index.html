@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <title>Shape Scanning Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
     <!-- Bootstrap CSS -->
     <link
       rel="stylesheet"
@@ -13,7 +22,9 @@
       /* Shapes container now takes full viewport height */
       #shapesContainer {
         position: relative;
-        height: 100vh; /* Full viewport height */
+        height: calc(
+          var(--vh, 1vh) * 100
+        ); /* Uses calculated viewport height */
         width: 100%;
         margin: 0 auto;
         border: 1px solid #ccc;
@@ -53,6 +64,15 @@
         margin-right: 10px;
       }
     </style>
+    <script>
+      function setVh() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
+      }
+      window.addEventListener("resize", setVh);
+      // Set it initially
+      setVh();
+    </script>
   </head>
   <body>
     <div class="container-fluid">
