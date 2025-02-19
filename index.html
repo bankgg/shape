@@ -280,6 +280,7 @@
           svg.setAttribute("width", size);
           svg.setAttribute("height", size);
           svg.setAttribute("class", "shape-svg");
+          svg.style.overflow = "visible";
           svg.style.left = posX + "px";
           svg.style.top = posY + "px";
           var shapeElement;
@@ -290,7 +291,7 @@
               shapeElement.setAttribute("cy", size / 2);
               shapeElement.setAttribute("r", size / 2 - 2);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "square":
@@ -300,7 +301,7 @@
               shapeElement.setAttribute("width", size - 4);
               shapeElement.setAttribute("height", size - 4);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "triangle":
@@ -315,7 +316,7 @@
                 (size - 2);
               shapeElement.setAttribute("points", points);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "hexagon":
@@ -332,8 +333,12 @@
               }
               shapeElement.setAttribute("points", points.trim());
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
+              // Smooth out the joins so the sides connect nicely.
+              shapeElement.setAttribute("stroke-linejoin", "round");
+              // First rotate 90° about the center, then scale vertically (after rotation)
+              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
               shapeElement.setAttribute(
                 "transform",
                 "rotate(90, " +
@@ -376,6 +381,7 @@
           svg.setAttribute("width", size);
           svg.setAttribute("height", size);
           svg.setAttribute("class", "question-svg");
+          svg.style.overflow = "visible";
           var shapeElement;
           switch (shape) {
             case "circle":
@@ -384,7 +390,7 @@
               shapeElement.setAttribute("cy", size / 2);
               shapeElement.setAttribute("r", size / 2 - 2);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "square":
@@ -394,7 +400,7 @@
               shapeElement.setAttribute("width", size - 4);
               shapeElement.setAttribute("height", size - 4);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "triangle":
@@ -409,7 +415,7 @@
                 (size - 2);
               shapeElement.setAttribute("points", points);
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               break;
             case "hexagon":
@@ -426,8 +432,12 @@
               }
               shapeElement.setAttribute("points", points.trim());
               shapeElement.setAttribute("stroke", "black");
-              shapeElement.setAttribute("stroke-width", "2");
+              shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
+              // Smooth out the joins so the sides connect nicely.
+              shapeElement.setAttribute("stroke-linejoin", "round");
+              // First rotate 90° about the center, then scale vertically (after rotation)
+              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
               shapeElement.setAttribute(
                 "transform",
                 "rotate(90, " +
