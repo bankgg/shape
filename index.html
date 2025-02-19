@@ -55,11 +55,10 @@
   </style>
 </head>
 <body>
-  <div class="container-fluid">
+  <div class="container-fluid pt-2">
     <div class="row">
       <!-- Tools Column -->
       <div class="col-12 col-md-2">
-        <h4>Tools</h4>
         <button id="btnGenerateShapes" class="btn btn-primary btn-block mb-2">
           Generate Shapes
         </button>
@@ -76,7 +75,6 @@
       </div>
       <!-- Shapes Container Column -->
       <div class="col-12 col-md-5">
-        <h4>Shapes Container (Full Height)</h4>
         <div id="shapesContainer">
           <div id="timeUpOverlay">Time's Up!</div>
           <div id="loadingIndicator">
@@ -88,7 +86,6 @@
       </div>
       <!-- Questions Column -->
       <div class="col-12 col-md-5">
-        <h4>Questions</h4>
         <div id="questionsContainer"></div>
       </div>
     </div>
@@ -148,10 +145,10 @@
       var totalTime = 6 * 60; // 6 minutes in seconds
 
       // Constants for shape appearance
-      const TEXT_FONT_SIZE = 16;
-      var minSize = 40,
+      const TEXT_FONT_SIZE = 13;
+      var minSize = 45,
         maxSize = 80;
-      var maxAttempts = 5000;
+      var maxAttempts = 1000000;
 
       // Create and initialize the worker
       var worker = new Worker("worker.js");
@@ -238,10 +235,10 @@
           var chunk = questionsData.slice(c, c + chunkSize);
           chunk.forEach(function(q) {
             var $qDiv = $('<div class="question-item" id="' + q.id + '"></div>');
-            var svgQuestion = generateQuestionSVG(q.shape, 50, q.number);
+            var svgQuestion = generateQuestionSVG(q.shape, 35, q.number);
             $qDiv.append(svgQuestion);
             $qDiv.append(
-              '<input type="text" maxlength="1" class="answer-input" style="width:40px;"> '
+              '<input type="text" maxlength="1" class="answer-input" style="width:28px;"> '
             );
             $qDiv.append('<span class="answer-indicator ml-2"></span>');
             colDiv.append($qDiv);
@@ -334,7 +331,7 @@
         // For triangles, add extra top margin (adjust +4 as needed)
         var textY =
           shape === "triangle"
-            ? size / 2 + TEXT_FONT_SIZE / 2 + 4
+            ? size / 2 + TEXT_FONT_SIZE / 2 + 10
             : size / 2 + TEXT_FONT_SIZE / 2 - 2;
         textElem.setAttribute("y", textY);
         textElem.setAttribute("text-anchor", "middle");
