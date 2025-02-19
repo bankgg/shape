@@ -152,9 +152,9 @@
         var totalTime = 6 * 60; // 6 minutes in seconds
 
         // Constants for shape appearance
-        const TEXT_FONT_SIZE = 13;
-        var minSize = 45,
-          maxSize = 80;
+        const TEXT_FONT_SIZE = 12;
+        var minSize = 40,
+          maxSize = 70;
         var maxAttempts = 1000000;
 
         // Create and initialize the worker
@@ -222,7 +222,7 @@
 
           // Post parameters to the worker
           worker.postMessage({
-            totalShapes: 80,
+            totalShapes: 100,
             containerWidth: containerWidth,
             containerHeight: containerHeight,
             minSize: minSize,
@@ -332,6 +332,7 @@
               shapeElement.setAttribute("stroke", "black");
               shapeElement.setAttribute("stroke-width", "2");
               shapeElement.setAttribute("fill", "none");
+              shapeElement.setAttribute("transform", "rotate(90 " + cx + " " + cy + ")");
               break;
           }
           svg.appendChild(shapeElement);
