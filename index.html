@@ -79,7 +79,9 @@
           <button id="btnToggleTimer" class="btn btn-secondary btn-block mb-2">
             Toggle Timer
           </button>
-          <div id="timerDisplay" class="mb-2 text-center" style="display: none">06:00</div>
+          <div id="timerDisplay" class="mb-2 text-center" style="display: none">
+            06:00
+          </div>
           <button id="btnShowAnswers" class="btn btn-info btn-block">
             Show Answers
           </button>
@@ -332,7 +334,22 @@
               shapeElement.setAttribute("stroke", "black");
               shapeElement.setAttribute("stroke-width", "2");
               shapeElement.setAttribute("fill", "none");
-              shapeElement.setAttribute("transform", "rotate(90 " + cx + " " + cy + ")");
+              shapeElement.setAttribute(
+                "transform",
+                "rotate(90 " + cx + " " + cy + ")"
+              );
+              shapeElement.setAttribute(
+                "transform",
+                "translate(" +
+                  cx +
+                  " " +
+                  cy +
+                  ") scale(1.2,1) translate(-" +
+                  cx +
+                  " -" +
+                  cy +
+                  ")"
+              );
               break;
           }
           svg.appendChild(shapeElement);
@@ -411,6 +428,22 @@
               shapeElement.setAttribute("stroke", "black");
               shapeElement.setAttribute("stroke-width", "2");
               shapeElement.setAttribute("fill", "none");
+              shapeElement.setAttribute(
+                "transform",
+                "rotate(90 " + cx + " " + cy + ")"
+              );
+              shapeElement.setAttribute(
+                "transform",
+                "translate(" +
+                  cx +
+                  " " +
+                  cy +
+                  ") scale(1.2,1) translate(-" +
+                  cx +
+                  " -" +
+                  cy +
+                  ")"
+              );
               break;
           }
           svg.appendChild(shapeElement);
@@ -470,8 +503,9 @@
               correctCount++;
             } else {
               indicator.html(
-                '<span class="text-danger fs-6">&#10008;</span> Correct: ' +
-                  correctAnswer
+                '<span class="text-danger fs-6">&#10008;</span> <span class="fs-6">Correct: ' +
+                  correctAnswer +
+                  "</span>"
               );
             }
           });
