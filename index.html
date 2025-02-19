@@ -88,7 +88,7 @@
           <button id="btnToggleTimer" class="btn btn-secondary btn-block mb-2">
             Toggle Timer
           </button>
-          <div id="timerDisplay" class="mb-2" style="display: none">06:00</div>
+          <div id="timerDisplay" class="mb-2 text-center" style="display: none">06:00</div>
           <button id="btnShowAnswers" class="btn btn-info btn-block">
             Show Answers
           </button>
@@ -199,7 +199,7 @@
             }
           });
           shuffleArray(availableShapes);
-          var numQuestions = Math.min(50, availableShapes.length);
+          var numQuestions = Math.min(52, availableShapes.length);
           questionsData = availableShapes
             .slice(0, numQuestions)
             .map(function (s, index) {
@@ -245,7 +245,7 @@
           $("#questionsContainer").empty();
           var $questionsRow = $('<div class="row"></div>');
           $("#questionsContainer").append($questionsRow);
-          var chunkSize = 15;
+          var chunkSize = 13;
           for (var c = 0; c < questionsData.length; c += chunkSize) {
             var colDiv = $('<div class="col-12 col-md-3"></div>');
             var chunk = questionsData.slice(c, c + chunkSize);
@@ -426,7 +426,7 @@
           textElem.setAttribute("x", size / 2);
           var textY =
             shape === "triangle"
-              ? size / 2 + (TEXT_FONT_SIZE - 2) / 2 + 10
+              ? size / 2 + (TEXT_FONT_SIZE - 2) / 2 + 6
               : size / 2 + (TEXT_FONT_SIZE - 2) / 2 - 2;
           textElem.setAttribute("y", textY);
           textElem.setAttribute("text-anchor", "middle");
