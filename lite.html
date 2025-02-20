@@ -513,6 +513,7 @@
         });
 
         $("#btnShowAnswers").click(function () {
+          clearInterval(timerInterval);
           var correctCount = 0;
           questionsData.forEach(function (q) {
             var userAnswer = $("#" + q.id)
