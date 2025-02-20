@@ -10,6 +10,17 @@
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     />
     <style>
+      #shapeCount {
+        position: fixed;
+        left: 5px;
+        bottom: 5px;
+        font-size: 10px;
+        color: #333;
+        background-color: rgba(255, 255, 255, 0.5);
+        padding: 2px 5px;
+        z-index: 30;
+      }
+
       /* Shapes container now takes full viewport height */
       #shapesContainer {
         position: relative;
@@ -140,6 +151,8 @@
           </div>
         </div>
       </div>
+
+      <div id="shapeCount">count: 0</div>
     </div>
 
     <!-- jQuery and Bootstrap JS -->
@@ -180,6 +193,7 @@
             );
             $container.append(svgShape);
           });
+          $("#shapeCount").text("count: " + shapesData.length);
 
           // Create unique questions (uniqueness based on shape type and number)
           var uniqueMap = {};
