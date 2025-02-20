@@ -74,7 +74,7 @@
       }
     </style>
     <script>
-      // Calculate the true viewport height for mobile browsers
+      // Calculate the viewport height for mobile browsers correctly
       function setVh() {
         let vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty("--vh", `${vh}px`);
@@ -175,6 +175,7 @@
         var timerInterval;
         var totalTime = 6 * 60; // 6 minutes
 
+        // Constants for shape appearance
         const TEXT_FONT_SIZE = 11;
         var minSize = 40,
           maxSize = 60;
@@ -184,13 +185,18 @@
         // Create and initialize the worker
         var worker = new Worker("worker.js");
 
-        // Handle progress updates from the worker
+        // Worker message handler (for progress updates and final data)
         worker.onmessage = function (e) {
-          if (e.data.progress !== undefined && e.data.total !== undefined) {
-            // Update loading percentage
+          // If progress update message
+          if (
+            e.data.progress !== undefined &&
+            e.data.total !== undefined &&
+            e.data.shapes === undefined
+          ) {
             var percent = Math.round((e.data.progress / e.data.total) * 100);
             $("#loadingPercent").text(percent + "%");
           }
+          // Final message with shapes array
           if (e.data.shapes !== undefined) {
             shapesData = e.data.shapes;
             $("#loadingIndicator").hide();
@@ -235,7 +241,7 @@
           }
         };
 
-        // "Generate Shapes" button click handler
+        // "Generate Shapes" button handler
         $("#btnGenerateShapes").click(function () {
           $("#shapesContainer").find(".shape-svg").remove();
           $("#questionsContainer").empty();
@@ -283,7 +289,7 @@
           }
         }
 
-        // Utility: shuffle array using Fisher-Yates
+        // Utility: shuffle array (Fisher-Yates)
         function shuffleArray(array) {
           for (var i = array.length - 1; i > 0; i--) {
             var j = getRandomInt(0, i);
@@ -298,7 +304,7 @@
           return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Generate an SVG element for a shape
+        // Generate an SVG element for a shape in the container
         function generateShapeSVG(shape, size, text, posX, posY) {
           var svgNS = "http://www.w3.org/2000/svg";
           var svg = document.createElementNS(svgNS, "svg");
@@ -361,7 +367,9 @@
               shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
               shapeElement.setAttribute("stroke-linejoin", "round");
-              // Rotate 90° then scale vertically (which widens the original width after rotation)
+              // First rotate 90° about the center, then scale vertically (after rotation)
+              // Since after rotation, the original width becomes aligned with the new y-axis,
+              // scaling vertically widens the original width.
               shapeElement.setAttribute(
                 "transform",
                 "rotate(90, " +
