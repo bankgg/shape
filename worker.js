@@ -1,4 +1,5 @@
 // worker.js
+
 self.onmessage = function (e) {
   var data = e.data;
   var totalShapes = data.totalShapes;
@@ -10,6 +11,8 @@ self.onmessage = function (e) {
 
   var shapes = [];
   var shapeTypes = ["circle", "square", "triangle", "hexagon"];
+  var overallAttempts = 0;
+  var maxOverallAttempts = totalShapes * 10; // safeguard to avoid infinite loop
 
   // Utility: random integer between min and max (inclusive)
   function getRandomInt(min, max) {
@@ -30,11 +33,12 @@ self.onmessage = function (e) {
     );
   }
 
-  for (var i = 0; i < totalShapes; i++) {
+  while (shapes.length < totalShapes && overallAttempts < maxOverallAttempts) {
+    overallAttempts++;
     var shape = shapeTypes[getRandomInt(0, shapeTypes.length - 1)];
     var size = getRandomInt(minSize, maxSize);
     var number, letter, text;
-    // Ensure that for a given shape type the number is unique
+    // Ensure unique number per shape type so far
     do {
       number = getRandomInt(1, 99);
       letter = getRandomLetter();
@@ -45,9 +49,11 @@ self.onmessage = function (e) {
       })
     );
 
+    // Try to find a non-overlapping random position (up to maxAttempts)
     var pos = null;
-    var attempt = 0;
-    while (attempt < maxAttempts) {
+    var attempts = 0;
+    while (attempts < maxAttempts) {
+      attempts++;
       var posX = getRandomInt(0, containerWidth - size);
       var posY = getRandomInt(0, containerHeight - size);
       var newRect = { x: posX, y: posY, size: size };
@@ -67,11 +73,13 @@ self.onmessage = function (e) {
         pos = { x: posX, y: posY };
         break;
       }
-      attempt++;
     }
+    // If no valid position is found after maxAttempts, force placement
     if (!pos) {
-      // Skip shape if no valid position is found
-      continue;
+      pos = {
+        x: getRandomInt(0, containerWidth - size),
+        y: getRandomInt(0, containerHeight - size),
+      };
     }
     shapes.push({
       shape: shape,
@@ -82,7 +90,43 @@ self.onmessage = function (e) {
       posX: pos.x,
       posY: pos.y,
     });
+    // Send progress update every 5 shapes
+    if (shapes.length % 5 === 0) {
+      self.postMessage({ progress: shapes.length, total: totalShapes });
+    }
   }
-  // Send computed shapes back to the main thread
+  // Ensure exactly totalShapes are generated
+  while (shapes.length < totalShapes) {
+    // Force-add shapes with random positions (without overlap check)
+    var shape = shapeTypes[getRandomInt(0, shapeTypes.length - 1)];
+    var size = getRandomInt(minSize, maxSize);
+    var number, letter, text;
+    do {
+      number = getRandomInt(1, 99);
+      letter = getRandomLetter();
+      text = number + letter;
+    } while (
+      shapes.some(function (s) {
+        return s.shape === shape && s.number === number;
+      })
+    );
+    var pos = {
+      x: getRandomInt(0, containerWidth - size),
+      y: getRandomInt(0, containerHeight - size),
+    };
+    shapes.push({
+      shape: shape,
+      size: size,
+      number: number,
+      letter: letter,
+      text: text,
+      posX: pos.x,
+      posY: pos.y,
+    });
+    if (shapes.length % 5 === 0) {
+      self.postMessage({ progress: shapes.length, total: totalShapes });
+    }
+  }
+  // Finally, send the shapes data back
   self.postMessage({ shapes: shapes });
 };

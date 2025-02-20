@@ -10,6 +10,14 @@
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     />
     <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
       #shapeCount {
         position: fixed;
         left: 5px;
@@ -24,9 +32,7 @@
       /* Shapes container now takes full viewport height */
       #shapesContainer {
         position: relative;
-        height: calc(
-          var(--vh, 1vh) * 100
-        ); /* Uses calculated viewport height */
+        height: calc(var(--vh, 1vh) * 100);
         width: 100%;
         margin: 0 auto;
         border: 1px solid #ccc;
@@ -56,6 +62,7 @@
         transform: translate(-50%, -50%);
         z-index: 20;
         display: none;
+        text-align: center;
       }
       /* Styling for each question item */
       .question-item {
@@ -67,12 +74,12 @@
       }
     </style>
     <script>
+      // Calculate the true viewport height for mobile browsers
       function setVh() {
         let vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty("--vh", `${vh}px`);
       }
       window.addEventListener("resize", setVh);
-      // Set it initially
       setVh();
     </script>
   </head>
@@ -104,6 +111,9 @@
             <div id="loadingIndicator">
               <div class="spinner-border text-primary" role="status">
                 <span class="sr-only">Loading...</span>
+              </div>
+              <div id="loadingPercent" style="font-size: 14px; margin-top: 5px">
+                0%
               </div>
             </div>
           </div>
@@ -160,85 +170,86 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
       $(document).ready(function () {
-        // Global variables for shapes and questions data
         var shapesData = [];
         var questionsData = [];
         var timerInterval;
-        var totalTime = 6 * 60; // 6 minutes in seconds
+        var totalTime = 6 * 60; // 6 minutes
 
-        // Constants for shape appearance
         const TEXT_FONT_SIZE = 11;
         var minSize = 40,
           maxSize = 60;
         var maxAttempts = 1000000;
+        var totalShapesDesired = 80; // We want exactly 80 shapes
 
         // Create and initialize the worker
         var worker = new Worker("worker.js");
 
-        // When the worker sends back the computed shapes:
+        // Handle progress updates from the worker
         worker.onmessage = function (e) {
-          shapesData = e.data.shapes;
-          // Hide loading indicator
-          $("#loadingIndicator").hide();
-          // Render the shapes in the container
-          var $container = $("#shapesContainer");
-          $container.find(".shape-svg").remove();
-          shapesData.forEach(function (s) {
-            var svgShape = generateShapeSVG(
-              s.shape,
-              s.size,
-              s.text,
-              s.posX,
-              s.posY
-            );
-            $container.append(svgShape);
-          });
-          $("#shapeCount").text("count: " + shapesData.length);
-
-          // Create unique questions (uniqueness based on shape type and number)
-          var uniqueMap = {};
-          var availableShapes = [];
-          shapesData.forEach(function (s) {
-            var key = s.shape + "-" + s.number;
-            if (!uniqueMap[key]) {
-              uniqueMap[key] = true;
-              availableShapes.push(s);
-            }
-          });
-          shuffleArray(availableShapes);
-          var numQuestions = Math.min(52, availableShapes.length);
-          questionsData = availableShapes
-            .slice(0, numQuestions)
-            .map(function (s, index) {
-              return {
-                shape: s.shape,
-                size: s.size,
-                number: s.number,
-                letter: s.letter,
-                id: "q" + index,
-              };
+          if (e.data.progress !== undefined && e.data.total !== undefined) {
+            // Update loading percentage
+            var percent = Math.round((e.data.progress / e.data.total) * 100);
+            $("#loadingPercent").text(percent + "%");
+          }
+          if (e.data.shapes !== undefined) {
+            shapesData = e.data.shapes;
+            $("#loadingIndicator").hide();
+            var $container = $("#shapesContainer");
+            $container.find(".shape-svg").remove();
+            shapesData.forEach(function (s) {
+              var svgShape = generateShapeSVG(
+                s.shape,
+                s.size,
+                s.text,
+                s.posX,
+                s.posY
+              );
+              $container.append(svgShape);
             });
-          renderQuestions();
+            $("#shapeCount").text("count: " + shapesData.length);
+
+            // Create unique questions (based on shape type and number)
+            var uniqueMap = {};
+            var availableShapes = [];
+            shapesData.forEach(function (s) {
+              var key = s.shape + "-" + s.number;
+              if (!uniqueMap[key]) {
+                uniqueMap[key] = true;
+                availableShapes.push(s);
+              }
+            });
+            shuffleArray(availableShapes);
+            var numQuestions = Math.min(52, availableShapes.length);
+            questionsData = availableShapes
+              .slice(0, numQuestions)
+              .map(function (s, index) {
+                return {
+                  shape: s.shape,
+                  size: s.size,
+                  number: s.number,
+                  letter: s.letter,
+                  id: "q" + index,
+                };
+              });
+            renderQuestions();
+          }
         };
 
         // "Generate Shapes" button click handler
         $("#btnGenerateShapes").click(function () {
-          // Clear previous shapes and questions
           $("#shapesContainer").find(".shape-svg").remove();
           $("#questionsContainer").empty();
           $("#timeUpOverlay").hide();
           shapesData = [];
           questionsData = [];
-          // Show the loading indicator
           $("#loadingIndicator").show();
+          $("#loadingPercent").text("0%");
 
-          // Get container dimensions from the DOM
           var containerWidth = $("#shapesContainer").width();
           var containerHeight = $("#shapesContainer").height();
 
-          // Post parameters to the worker
           worker.postMessage({
-            totalShapes: 100,
+            totalShapes: totalShapesDesired,
             containerWidth: containerWidth,
             containerHeight: containerHeight,
             minSize: minSize,
@@ -247,7 +258,7 @@
           });
         });
 
-        // Render questions into multiple columns (max 15 per column)
+        // Render questions into multiple columns (max 13 per column)
         function renderQuestions() {
           $("#questionsContainer").empty();
           var $questionsRow = $('<div class="row"></div>');
@@ -272,7 +283,7 @@
           }
         }
 
-        // Utility: shuffle array (Fisher-Yates)
+        // Utility: shuffle array using Fisher-Yates
         function shuffleArray(array) {
           for (var i = array.length - 1; i > 0; i--) {
             var j = getRandomInt(0, i);
@@ -287,7 +298,7 @@
           return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Generate an SVG element for a shape in the container
+        // Generate an SVG element for a shape
         function generateShapeSVG(shape, size, text, posX, posY) {
           var svgNS = "http://www.w3.org/2000/svg";
           var svg = document.createElementNS(svgNS, "svg");
@@ -349,10 +360,8 @@
               shapeElement.setAttribute("stroke", "black");
               shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
-              // Smooth out the joins so the sides connect nicely.
               shapeElement.setAttribute("stroke-linejoin", "round");
-              // First rotate 90° about the center, then scale vertically (after rotation)
-              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
+              // Rotate 90° then scale vertically (which widens the original width after rotation)
               shapeElement.setAttribute(
                 "transform",
                 "rotate(90, " +
@@ -374,7 +383,6 @@
           svg.appendChild(shapeElement);
           var textElem = document.createElementNS(svgNS, "text");
           textElem.setAttribute("x", size / 2);
-          // For triangles, add extra top margin (adjust +4 as needed)
           var textY =
             shape === "triangle"
               ? size / 2 + TEXT_FONT_SIZE / 2 + 10
@@ -448,10 +456,7 @@
               shapeElement.setAttribute("stroke", "black");
               shapeElement.setAttribute("stroke-width", "1");
               shapeElement.setAttribute("fill", "none");
-              // Smooth out the joins so the sides connect nicely.
               shapeElement.setAttribute("stroke-linejoin", "round");
-              // First rotate 90° about the center, then scale vertically (after rotation)
-              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
               shapeElement.setAttribute(
                 "transform",
                 "rotate(90, " +
@@ -473,11 +478,7 @@
           svg.appendChild(shapeElement);
           var textElem = document.createElementNS(svgNS, "text");
           textElem.setAttribute("x", size / 2);
-          var textY =
-            shape === "triangle"
-              ? size / 2 + (TEXT_FONT_SIZE - 1) / 2 + 6
-              : size / 2 + (TEXT_FONT_SIZE - 1) / 2 - 2;
-          textElem.setAttribute("y", textY);
+          textElem.setAttribute("y", size / 2 + (TEXT_FONT_SIZE - 1) / 2 - 2);
           textElem.setAttribute("text-anchor", "middle");
           textElem.setAttribute("font-size", TEXT_FONT_SIZE - 1);
           textElem.setAttribute("fill", "black");
@@ -527,7 +528,7 @@
               correctCount++;
             } else {
               indicator.html(
-                '<span class="text-danger fs-6">&#10008;</span> <span style="font-size: 85%">Correct: ' +
+                '<span class="text-danger">&#10008;</span> <span style="font-size:85%;">Correct: ' +
                   correctAnswer +
                   "</span>"
               );
