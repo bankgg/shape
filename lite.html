@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Shape Scanning Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      #shapeCount {
+        position: fixed;
+        left: 5px;
+        bottom: 5px;
+        font-size: 10px;
+        color: #333;
+        background-color: rgba(255, 255, 255, 0.5);
+        padding: 2px 5px;
+        z-index: 30;
+      }
+
+      /* Shapes container now takes full viewport height */
+      #shapesContainer {
+        position: relative;
+        height: calc(
+          var(--vh, 1vh) * 100
+        ); /* Uses calculated viewport height */
+        width: 100%;
+        margin: 0 auto;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        overflow: hidden;
+      }
+      /* Position generated shapes absolutely */
+      .shape-svg {
+        position: absolute;
+      }
+      /* "Time's Up!" overlay */
+      #timeUpOverlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 48px;
+        color: red;
+        display: none;
+        z-index: 10;
+      }
+      /* Loading indicator styling */
+      #loadingIndicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 20;
+        display: none;
+      }
+      /* Styling for each question item */
+      .question-item {
+        margin-bottom: 15px;
+      }
+      .question-svg {
+        vertical-align: middle;
+        margin-right: 10px;
+      }
+    </style>
+    <script>
+      function setVh() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
+      }
+      window.addEventListener("resize", setVh);
+      // Set it initially
+      setVh();
+    </script>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Tools Column -->
+        <div class="col-12 col-md-2 mt-2">
+          <button id="btnGenerateShapes" class="btn btn-primary btn-block mb-2">
+            Generate Shapes
+          </button>
+          <button id="btnStartTimer" class="btn btn-success btn-block mb-2">
+            Timer Start
+          </button>
+          <button id="btnToggleTimer" class="btn btn-secondary btn-block mb-2">
+            Toggle Timer
+          </button>
+          <div id="timerDisplay" class="mb-2 text-center" style="display: none">
+            06:00
+          </div>
+          <button id="btnShowAnswers" class="btn btn-info btn-block">
+            Show Answers
+          </button>
+        </div>
+        <!-- Shapes Container Column -->
+        <div class="col-12 col-md-5">
+          <div id="shapesContainer">
+            <div id="timeUpOverlay">Time's Up!</div>
+            <div id="loadingIndicator">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Questions Column -->
+        <div class="col-12 col-md-5 mt-2">
+          <div id="questionsContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div
+      class="modal fade"
+      id="resultModal"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="resultModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="resultModalLabel" class="modal-title">Results</h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p id="resultPercentage"></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="shapeCount">count: 0</div>
+    </div>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        // Global variables for shapes and questions data
+        var shapesData = [];
+        var questionsData = [];
+        var timerInterval;
+        var totalTime = 6 * 60; // 6 minutes in seconds
+
+        // Constants for shape appearance
+        const TEXT_FONT_SIZE = 11;
+        var minSize = 40,
+          maxSize = 60;
+        var maxAttempts = 1000000;
+
+        // Create and initialize the worker
+        var worker = new Worker("workerLite.js");
+
+        // When the worker sends back the computed shapes:
+        worker.onmessage = function (e) {
+          shapesData = e.data.shapes;
+          // Hide loading indicator
+          $("#loadingIndicator").hide();
+          // Render the shapes in the container
+          var $container = $("#shapesContainer");
+          $container.find(".shape-svg").remove();
+          shapesData.forEach(function (s) {
+            var svgShape = generateShapeSVG(
+              s.shape,
+              s.size,
+              s.text,
+              s.posX,
+              s.posY
+            );
+            $container.append(svgShape);
+          });
+          $("#shapeCount").text("count: " + shapesData.length);
+
+          // Create unique questions (uniqueness based on shape type and number)
+          var uniqueMap = {};
+          var availableShapes = [];
+          shapesData.forEach(function (s) {
+            var key = s.shape + "-" + s.number;
+            if (!uniqueMap[key]) {
+              uniqueMap[key] = true;
+              availableShapes.push(s);
+            }
+          });
+          shuffleArray(availableShapes);
+          var numQuestions = Math.min(52, availableShapes.length);
+          questionsData = availableShapes
+            .slice(0, numQuestions)
+            .map(function (s, index) {
+              return {
+                shape: s.shape,
+                size: s.size,
+                number: s.number,
+                letter: s.letter,
+                id: "q" + index,
+              };
+            });
+          renderQuestions();
+        };
+
+        // "Generate Shapes" button click handler
+        $("#btnGenerateShapes").click(function () {
+          // Clear previous shapes and questions
+          $("#shapesContainer").find(".shape-svg").remove();
+          $("#questionsContainer").empty();
+          $("#timeUpOverlay").hide();
+          shapesData = [];
+          questionsData = [];
+          // Show the loading indicator
+          $("#loadingIndicator").show();
+
+          // Get container dimensions from the DOM
+          var containerWidth = $("#shapesContainer").width();
+          var containerHeight = $("#shapesContainer").height();
+
+          // Post parameters to the worker
+          worker.postMessage({
+            totalShapes: 100,
+            containerWidth: containerWidth,
+            containerHeight: containerHeight,
+            minSize: minSize,
+            maxSize: maxSize,
+            maxAttempts: maxAttempts,
+          });
+        });
+
+        // Render questions into multiple columns (max 15 per column)
+        function renderQuestions() {
+          $("#questionsContainer").empty();
+          var $questionsRow = $('<div class="row"></div>');
+          $("#questionsContainer").append($questionsRow);
+          var chunkSize = 13;
+          for (var c = 0; c < questionsData.length; c += chunkSize) {
+            var colDiv = $('<div class="col-12 col-md-3"></div>');
+            var chunk = questionsData.slice(c, c + chunkSize);
+            chunk.forEach(function (q) {
+              var $qDiv = $(
+                '<div class="question-item" id="' + q.id + '"></div>'
+              );
+              var svgQuestion = generateQuestionSVG(q.shape, 35, q.number);
+              $qDiv.append(svgQuestion);
+              $qDiv.append(
+                '<input type="text" maxlength="1" class="answer-input" style="width: 32px;"> '
+              );
+              $qDiv.append('<span class="answer-indicator ml-2"></span>');
+              colDiv.append($qDiv);
+            });
+            $questionsRow.append(colDiv);
+          }
+        }
+
+        // Utility: shuffle array (Fisher-Yates)
+        function shuffleArray(array) {
+          for (var i = array.length - 1; i > 0; i--) {
+            var j = getRandomInt(0, i);
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+          }
+        }
+
+        // Utility: random integer between min and max (inclusive)
+        function getRandomInt(min, max) {
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Generate an SVG element for a shape in the container
+        function generateShapeSVG(shape, size, text, posX, posY) {
+          var svgNS = "http://www.w3.org/2000/svg";
+          var svg = document.createElementNS(svgNS, "svg");
+          svg.setAttribute("width", size);
+          svg.setAttribute("height", size);
+          svg.setAttribute("class", "shape-svg");
+          svg.style.overflow = "visible";
+          svg.style.left = posX + "px";
+          svg.style.top = posY + "px";
+          var shapeElement;
+          switch (shape) {
+            case "circle":
+              shapeElement = document.createElementNS(svgNS, "circle");
+              shapeElement.setAttribute("cx", size / 2);
+              shapeElement.setAttribute("cy", size / 2);
+              shapeElement.setAttribute("r", size / 2 - 2);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "square":
+              shapeElement = document.createElementNS(svgNS, "rect");
+              shapeElement.setAttribute("x", 2);
+              shapeElement.setAttribute("y", 2);
+              shapeElement.setAttribute("width", size - 4);
+              shapeElement.setAttribute("height", size - 4);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "triangle":
+              shapeElement = document.createElementNS(svgNS, "polygon");
+              var points =
+                size / 2 +
+                ",2 " +
+                (size - 2) +
+                "," +
+                (size - 2) +
+                " 2," +
+                (size - 2);
+              shapeElement.setAttribute("points", points);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "hexagon":
+              shapeElement = document.createElementNS(svgNS, "polygon");
+              var r = size / 2 - 2;
+              var cx = size / 2;
+              var cy = size / 2;
+              var points = "";
+              for (var i = 0; i < 6; i++) {
+                var angle = (Math.PI / 3) * i - Math.PI / 6;
+                var x = cx + r * Math.cos(angle);
+                var y = cy + r * Math.sin(angle);
+                points += x + "," + y + " ";
+              }
+              shapeElement.setAttribute("points", points.trim());
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              // Smooth out the joins so the sides connect nicely.
+              shapeElement.setAttribute("stroke-linejoin", "round");
+              // First rotate 90° about the center, then scale vertically (after rotation)
+              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
+              shapeElement.setAttribute(
+                "transform",
+                "rotate(90, " +
+                  cx +
+                  ", " +
+                  cy +
+                  ") translate(" +
+                  cx +
+                  ", " +
+                  cy +
+                  ") scale(1,1.1) translate(-" +
+                  cx +
+                  ", -" +
+                  cy +
+                  ")"
+              );
+              break;
+          }
+          svg.appendChild(shapeElement);
+          var textElem = document.createElementNS(svgNS, "text");
+          textElem.setAttribute("x", size / 2);
+          // For triangles, add extra top margin (adjust +4 as needed)
+          var textY =
+            shape === "triangle"
+              ? size / 2 + TEXT_FONT_SIZE / 2 + 10
+              : size / 2 + TEXT_FONT_SIZE / 2 - 2;
+          textElem.setAttribute("y", textY);
+          textElem.setAttribute("text-anchor", "middle");
+          textElem.setAttribute("font-size", TEXT_FONT_SIZE);
+          textElem.setAttribute("fill", "black");
+          textElem.textContent = text;
+          svg.appendChild(textElem);
+          return svg;
+        }
+
+        // Generate an SVG element for a question (shows only the number)
+        function generateQuestionSVG(shape, size, numberText) {
+          var svgNS = "http://www.w3.org/2000/svg";
+          var svg = document.createElementNS(svgNS, "svg");
+          svg.setAttribute("width", size);
+          svg.setAttribute("height", size);
+          svg.setAttribute("class", "question-svg");
+          svg.style.overflow = "visible";
+          var shapeElement;
+          switch (shape) {
+            case "circle":
+              shapeElement = document.createElementNS(svgNS, "circle");
+              shapeElement.setAttribute("cx", size / 2);
+              shapeElement.setAttribute("cy", size / 2);
+              shapeElement.setAttribute("r", size / 2 - 2);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "square":
+              shapeElement = document.createElementNS(svgNS, "rect");
+              shapeElement.setAttribute("x", 2);
+              shapeElement.setAttribute("y", 2);
+              shapeElement.setAttribute("width", size - 4);
+              shapeElement.setAttribute("height", size - 4);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "triangle":
+              shapeElement = document.createElementNS(svgNS, "polygon");
+              var points =
+                size / 2 +
+                ",2 " +
+                (size - 2) +
+                "," +
+                (size - 2) +
+                " 2," +
+                (size - 2);
+              shapeElement.setAttribute("points", points);
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              break;
+            case "hexagon":
+              shapeElement = document.createElementNS(svgNS, "polygon");
+              var r = size / 2 - 2;
+              var cx = size / 2;
+              var cy = size / 2;
+              var points = "";
+              for (var i = 0; i < 6; i++) {
+                var angle = (Math.PI / 3) * i - Math.PI / 6;
+                var x = cx + r * Math.cos(angle);
+                var y = cy + r * Math.sin(angle);
+                points += x + "," + y + " ";
+              }
+              shapeElement.setAttribute("points", points.trim());
+              shapeElement.setAttribute("stroke", "black");
+              shapeElement.setAttribute("stroke-width", "1");
+              shapeElement.setAttribute("fill", "none");
+              // Smooth out the joins so the sides connect nicely.
+              shapeElement.setAttribute("stroke-linejoin", "round");
+              // First rotate 90° about the center, then scale vertically (after rotation)
+              // to widen the original width. (After a 90° rotation, the original width is along the new y‑axis.)
+              shapeElement.setAttribute(
+                "transform",
+                "rotate(90, " +
+                  cx +
+                  ", " +
+                  cy +
+                  ") translate(" +
+                  cx +
+                  ", " +
+                  cy +
+                  ") scale(1,1.1) translate(-" +
+                  cx +
+                  ", -" +
+                  cy +
+                  ")"
+              );
+              break;
+          }
+          svg.appendChild(shapeElement);
+          var textElem = document.createElementNS(svgNS, "text");
+          textElem.setAttribute("x", size / 2);
+          var textY =
+            shape === "triangle"
+              ? size / 2 + (TEXT_FONT_SIZE - 1) / 2 + 6
+              : size / 2 + (TEXT_FONT_SIZE - 1) / 2 - 2;
+          textElem.setAttribute("y", textY);
+          textElem.setAttribute("text-anchor", "middle");
+          textElem.setAttribute("font-size", TEXT_FONT_SIZE - 1);
+          textElem.setAttribute("fill", "black");
+          textElem.textContent = numberText;
+          svg.appendChild(textElem);
+          return svg;
+        }
+
+        // Timer functionality
+        $("#btnStartTimer").click(function () {
+          clearInterval(timerInterval);
+          totalTime = 6 * 60;
+          $("#timerDisplay").text("06:00").hide();
+          timerInterval = setInterval(function () {
+            totalTime--;
+            var minutes = Math.floor(totalTime / 60);
+            var seconds = totalTime % 60;
+            var timeStr =
+              (minutes < 10 ? "0" + minutes : minutes) +
+              ":" +
+              (seconds < 10 ? "0" + seconds : seconds);
+            $("#timerDisplay").text(timeStr);
+            if (totalTime <= 0) {
+              clearInterval(timerInterval);
+              $("#shapesContainer").find(".shape-svg").hide();
+              $("#timeUpOverlay").show();
+            }
+          }, 1000);
+        });
+
+        $("#btnToggleTimer").click(function () {
+          $("#timerDisplay").toggle();
+        });
+
+        $("#btnShowAnswers").click(function () {
+          var correctCount = 0;
+          questionsData.forEach(function (q) {
+            var userAnswer = $("#" + q.id)
+              .find(".answer-input")
+              .val()
+              .trim()
+              .toUpperCase();
+            var correctAnswer = q.letter;
+            var indicator = $("#" + q.id).find(".answer-indicator");
+            if (userAnswer === correctAnswer) {
+              indicator.html('<span class="text-success">&#10004;</span>');
+              correctCount++;
+            } else {
+              indicator.html(
+                '<span class="text-danger fs-6">&#10008;</span> <span style="font-size: 85%">Correct: ' +
+                  correctAnswer +
+                  "</span>"
+              );
+            }
+          });
+          var percentage = Math.round(
+            (correctCount / questionsData.length) * 100
+          );
+          $("#resultPercentage").text(
+            "You answered " + percentage + "% correctly."
+          );
+          $("#resultModal").modal("show");
+        });
+      });
+    </script>
+  </body>
+</html>
